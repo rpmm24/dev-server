@@ -12,7 +12,7 @@ mod mods;
 
 pub const CACHE_ROOT: &str = "mod_cache";
 
-const MIN_INTERVAL: Duration = Duration::from_secs(5 * 60);
+const MIN_INTERVAL: Duration = Duration::from_secs(4 * 60);
 
 #[tokio::main]
 pub async fn main() {
@@ -24,8 +24,7 @@ pub async fn main() {
 
         println!("collecting mod jars...");
 
-        let mod_jars = mods.collect_jars().await
-            .expect("failed to collect mod jars");
+        let mod_jars = mods.collect_jars().await;
 
         println!("opening server...");
 

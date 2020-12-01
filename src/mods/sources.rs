@@ -21,6 +21,13 @@ impl ModSource {
         ModSource { root: root.into(), changed: true }
     }
 
+    pub async fn reset(&mut self) -> Result<()> {
+        let mut command = self.command_gradle();
+        command.args(&["clean"]);
+        command.spawn()?.await?;
+        Ok(())
+    }
+
     pub async fn build(&mut self) -> Result<Option<PathBuf>> {
         let build = self.root.join("build/libs");
 

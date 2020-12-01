@@ -21,18 +21,53 @@ impl Mods {
         Mods { mods }
     }
 
-    pub async fn collect_jars(&mut self) -> Result<Vec<PathBuf>> {
+    pub async fn collect_jars(&mut self) -> Vec<PathBuf> {
         let mut jars = Vec::new();
 
         for m in &self.mods {
-            match m {
-                Mod::Http(http) => jars.push(http::get(&http).await?),
-                Mod::Git(git) => jars.push(git::get(&git).await?),
-                Mod::File(file) => jars.push(file.path.clone())
+            match Mods::retry_build_jar(m).await {
+                Ok(jar) => jars.push(jar),
+                Err(err) => eprintln!("failed to build jar! excluding... {:?}", err),
             }
         }
 
-        Ok(jars)
+        jars
+    }
+
+    async fn retry_build_jar(m: &Mod) -> Result<PathBuf> {
+        const MAX_RETRIES: u8 = 2;
+
+        let mut retries = 0;
+
+        loop {
+            match Mods::build_jar(m).await {
+                Ok(jar) => break Ok(jar),
+                Err(err) => {
+                    retries += 1;
+                    if retries < MAX_RETRIES {
+                        eprintln!("failed to build jar! retrying... {:?}", err);
+                        Mods::reset_build(m).await?
+                    } else {
+                        break Err(err);
+                    }
+                }
+            }
+        }
+    }
+
+    async fn build_jar(m: &Mod) -> Result<PathBuf> {
+        match m {
+            Mod::Http(http) => http::get(&http).await,
+            Mod::Git(git) => git::get(&git).await,
+            Mod::File(file) => Ok(file.path.clone())
+        }
+    }
+
+    async fn reset_build(m: &Mod) -> Result<()> {
+        match m {
+            Mod::Git(git) => git::reset(&git).await,
+            _ => Ok(())
+        }
     }
 }
 
