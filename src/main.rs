@@ -12,16 +12,16 @@ mod mods;
 
 pub const CACHE_ROOT: &str = "mod_cache";
 
-const MIN_INTERVAL: Duration = Duration::from_secs(8 * 60);
+const MIN_INTERVAL: Duration = Duration::from_secs(5 * 60);
 
 #[tokio::main]
 pub async fn main() {
-    let config = config().await;
-
-    let mut mods = Mods::parse(&config);
-    println!("parsed {} mods", mods.mods.len());
-
     loop {
+        let config = config().await;
+
+        let mut mods = Mods::parse(&config);
+        println!("parsed {} mods", mods.mods.len());
+
         println!("collecting mod jars...");
 
         let mod_jars = mods.collect_jars().await

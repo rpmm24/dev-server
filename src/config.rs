@@ -26,6 +26,7 @@ impl Default for Config {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mod {
     pub url: Option<String>,
+    pub path: Option<PathBuf>,
     pub git: Option<String>,
     pub branch: Option<String>,
 }

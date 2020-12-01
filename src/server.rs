@@ -17,6 +17,7 @@ impl Server {
     }
 
     pub async fn run(&mut self, jvm: Option<&str>, mods: &[PathBuf]) -> Result<()> {
+        println!("setting up mods directory");
         self.setup_mods(mods).await?;
 
         let mut command = process::Command::new("java");
@@ -29,7 +30,7 @@ impl Server {
         let jar_name = self.jar.file_name().unwrap().to_str().unwrap();
         command.arg(jar_name);
 
-        command.current_dir(&self.root);
+        println!("invoking jar {} in {:?}", jar_name, self.root);
 
         command.spawn()?.await?;
 

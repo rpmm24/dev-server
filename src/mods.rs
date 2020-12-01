@@ -28,6 +28,7 @@ impl Mods {
             match m {
                 Mod::Http(http) => jars.push(http::get(&http).await?),
                 Mod::Git(git) => jars.push(git::get(&git).await?),
+                Mod::File(file) => jars.push(file.path.clone())
             }
         }
 
@@ -39,16 +40,20 @@ impl Mods {
 pub enum Mod {
     Http(HttpMod),
     Git(GitMod),
+    File(FileMod),
 }
 
 impl Mod {
     pub fn parse(config: &config::Mod) -> Option<Mod> {
         match config {
-            config::Mod { url: Some(url), git: None, branch: None } => {
+            config::Mod { url: Some(url), path: None, git: None, branch: None } => {
                 Some(Mod::Http(HttpMod { url: url.clone() }))
             }
-            config::Mod { url: None, git: Some(url), branch } => {
+            config::Mod { url: None, path: None, git: Some(url), branch } => {
                 Some(Mod::Git(GitMod { url: url.clone(), branch: branch.clone() }))
+            }
+            config::Mod { url: None, path: Some(path), git: None, branch: None } => {
+                Some(Mod::File(FileMod { path: path.clone() }))
             }
             _ => None,
         }
@@ -64,4 +69,9 @@ pub struct HttpMod {
 pub struct GitMod {
     pub url: String,
     pub branch: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct FileMod {
+    pub path: PathBuf,
 }
