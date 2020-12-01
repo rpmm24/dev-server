@@ -11,6 +11,7 @@ pub struct Config {
     pub server_jar: PathBuf,
     pub jvm: Option<String>,
     pub mods: HashMap<String, Mod>,
+    pub webhook: Option<String>,
 }
 
 impl Default for Config {
@@ -19,6 +20,7 @@ impl Default for Config {
             server_jar: PathBuf::new(),
             jvm: None,
             mods: HashMap::new(),
+            webhook: None,
         }
     }
 }

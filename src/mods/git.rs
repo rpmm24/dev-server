@@ -30,6 +30,12 @@ pub async fn reset(git: &GitMod) -> Result<()> {
     }
 }
 
+pub fn name(git: &GitMod) -> String {
+    let name_pattern = fancy_regex::Regex::new(r#".*\/(.*)\.git"#).unwrap();
+    let captures = name_pattern.captures(&git.url).unwrap().unwrap();
+    captures.get(1).unwrap().as_str().to_owned()
+}
+
 async fn open_source(git: &GitMod) -> Result<ModSource> {
     let repository_path = get_repository_cache(git)?;
     if let Some(parent) = repository_path.parent() {
@@ -41,17 +47,13 @@ async fn open_source(git: &GitMod) -> Result<ModSource> {
     if repository_path.exists() {
         open_and_pull_source(repository_path, git).await
     } else {
-        clone_source(repository_path, name, git).await
+        clone_source(repository_path, git).await
     }
 }
 
 fn get_repository_cache(git: &GitMod) -> Result<PathBuf> {
     let cache_root = Path::new(CACHE_ROOT);
-
-    let name_pattern = fancy_regex::Regex::new(r#".*\/(.*)\.git"#)?;
-    let captures = name_pattern.captures(&git.url)?.unwrap();
-    let name = captures.get(1).unwrap().as_str();
-
+    let name = name(git);
     Ok(cache_root.join(name))
 }
 
@@ -92,8 +94,10 @@ async fn open_and_pull_source(root: PathBuf, git: &GitMod) -> Result<ModSource> 
     }
 }
 
-async fn clone_source(root: PathBuf, name: &str, git: &GitMod) -> Result<ModSource> {
+async fn clone_source(root: PathBuf, git: &GitMod) -> Result<ModSource> {
     println!("cloning repository {} @ {:?}", git.url, git.branch);
+
+    let name = root.file_name().and_then(|n| n.to_str()).unwrap();
 
     let mut command = process::Command::new("git");
     command.current_dir(root.parent().unwrap());

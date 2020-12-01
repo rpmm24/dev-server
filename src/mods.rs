@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{Config, config, Result};
+use crate::status::StatusWriter;
 
 mod artifact;
 mod git;
@@ -21,13 +22,16 @@ impl Mods {
         Mods { mods }
     }
 
-    pub async fn collect_jars(&mut self) -> Vec<PathBuf> {
+    pub async fn collect_jars(&mut self, status: &StatusWriter) -> Vec<PathBuf> {
         let mut jars = Vec::new();
 
         for m in &self.mods {
             match Mods::retry_build_jar(m).await {
                 Ok(jar) => jars.push(jar),
-                Err(err) => eprintln!("failed to build jar! excluding... {:?}", err),
+                Err(err) => {
+                    eprintln!("failed to build jar! excluding... {:?}", err);
+                    status.write(format!("Failed to build {}: {:?}! Excluding...", m.as_name(), err));
+                },
             }
         }
 
@@ -91,6 +95,14 @@ impl Mod {
                 Some(Mod::File(FileMod { path: path.clone() }))
             }
             _ => None,
+        }
+    }
+
+    pub fn as_name(&self) -> String {
+        match self {
+            Mod::Http(http) => http::name(http),
+            Mod::Git(git) => git::name(git),
+            Mod::File(file) => file.path.file_name().and_then(|n| n.to_str()).unwrap().to_string(),
         }
     }
 }

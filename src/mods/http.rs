@@ -13,9 +13,7 @@ pub async fn get(http: &HttpMod) -> Result<PathBuf> {
         fs::create_dir_all(cache_root).await?;
     }
 
-    let name_pattern = fancy_regex::Regex::new(r#".*\/(.*\.jar)"#).unwrap();
-    let captures = name_pattern.captures(&http.url).unwrap().unwrap();
-    let name = captures.get(1).unwrap().as_str();
+    let name = name(http);
 
     let cache_path = cache_root.join(name);
     if cache_path.exists() {
@@ -30,4 +28,10 @@ pub async fn get(http: &HttpMod) -> Result<PathBuf> {
     file.write_all(&bytes).await?;
 
     Ok(cache_path)
+}
+
+pub fn name(http: &HttpMod) -> String {
+    let name_pattern = fancy_regex::Regex::new(r#".*\/(.*\.jar)"#).unwrap();
+    let captures = name_pattern.captures(&http.url).unwrap().unwrap();
+    captures.get(1).unwrap().as_str().to_owned()
 }

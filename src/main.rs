@@ -6,9 +6,13 @@ pub use config::{Config, config};
 pub use mods::*;
 pub use server::Server;
 
+use crate::status::StatusWriter;
+
 mod server;
 mod config;
 mod mods;
+mod webhook;
+mod status;
 
 pub const CACHE_ROOT: &str = "mod_cache";
 
@@ -19,12 +23,19 @@ pub async fn main() {
     loop {
         let config = config().await;
 
+        let status = match &config.webhook {
+            Some(webhook) => StatusWriter::from(webhook::Client::open(webhook)),
+            None => StatusWriter::none(),
+        };
+
         let mut mods = Mods::parse(&config);
         println!("parsed {} mods", mods.mods.len());
 
         println!("collecting mod jars...");
 
-        let mod_jars = mods.collect_jars().await;
+        let mod_jars = mods.collect_jars(&status).await;
+
+        status.write("Starting up server...");
 
         println!("opening server...");
 
@@ -39,7 +50,13 @@ pub async fn main() {
         let interval = Instant::now() - start;
         if interval < MIN_INTERVAL {
             println!("server restarted very quickly! waiting a bit...");
-            tokio::time::delay_for((MIN_INTERVAL - interval).into()).await;
+
+            let delay = MIN_INTERVAL - interval;
+            status.write(format!("Server restarted too quickly! Waiting for {} seconds...", delay.as_secs()));
+
+            tokio::time::delay_for((delay).into()).await;
+        } else {
+            status.write("Server closed! Restarting...");
         }
     }
 }
